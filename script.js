@@ -42,8 +42,14 @@ captureBtn.addEventListener('click', () => {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     context.filter = isInverted ? 'invert(1)' : 'none';
-    context.scale(zoomLevel, zoomLevel);
-    context.drawImage(video, 0, 0, canvas.width / zoomLevel, canvas.height / zoomLevel);
+
+    // Adjust for zoom
+    const scaledWidth = canvas.width / zoomLevel;
+    const scaledHeight = canvas.height / zoomLevel;
+    const offsetX = (canvas.width - scaledWidth) / 2;
+    const offsetY = (canvas.height - scaledHeight) / 2;
+
+    context.drawImage(video, offsetX, offsetY, scaledWidth, scaledHeight);
     canvas.style.display = 'block';
 });
 
@@ -60,7 +66,7 @@ saveBtn.addEventListener('click', () => {
 zoomInBtn.addEventListener('click', () => {
     if (zoomLevel < 3) {
         zoomLevel += 0.1;
-        video.style.transform = scale(${zoomLevel});
+        video.style.transform = `scale(${zoomLevel})`;
     }
 });
 
@@ -68,7 +74,7 @@ zoomInBtn.addEventListener('click', () => {
 zoomOutBtn.addEventListener('click', () => {
     if (zoomLevel > 1) {
         zoomLevel -= 0.1;
-        video.style.transform = scale(${zoomLevel});
+        video.style.transform = `scale(${zoomLevel})`;
     }
 });
 
@@ -80,12 +86,18 @@ invertBtn.addEventListener('click', () => {
 
 // Toggle Flash
 flashToggleBtn.addEventListener('click', () => {
+    if (!stream) return;
+
     const track = stream.getVideoTracks()[0];
+    if (!track) return;
+
     const capabilities = track.getCapabilities();
 
     if (capabilities.torch) {
         flashOn = !flashOn;
-        track.applyConstraints({ advanced: [{ torch: flashOn }] });
+        track.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(e => {
+            console.error("Error toggling flash:", e);
+        });
     } else {
         alert('Flashlight is not supported on this device.');
     }
